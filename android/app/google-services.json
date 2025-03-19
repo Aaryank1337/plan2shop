@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "716695427404",
+    "project_id": "p2smpl",
+    "storage_bucket": "p2smpl.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716695427404:android:33716a21a9c21de45d57e9",
+        "android_client_info": {
+          "package_name": "com.example.plan2shop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzCxoP74vhWsh9kBwxhO-mdQ6ZZP-XWho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
