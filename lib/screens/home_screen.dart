@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:plan2shop/screens/grocery_list_screen.dart';
 import 'package:plan2shop/screens/settings_screen.dart';
 import 'package:plan2shop/screens/add_recipe_screen.dart';
 import 'package:plan2shop/widgets/recipe_card.dart';
+import 'package:plan2shop/screens/grocery_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,23 +17,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    RecipeScreen(),
-    GroceryListScreen(),
-    SettingsScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Build screens without dark mode functionality.
+    final List<Widget> screens = [
+      const RecipeScreen(),
+      const GroceryListScreen(),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
-      body: _screens[_selectedIndex],
-      // Display FAB only on the RecipeScreen (index 0)
+      body: screens[_selectedIndex],
+      // Show FAB only on the RecipeScreen.
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
               onPressed: () {
@@ -49,13 +44,24 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Recipes'),
           BottomNavigationBarItem(
-              icon: Icon(FontAwesomeIcons.cartShopping), label: 'Grocery List'),
+            icon: Icon(Icons.book),
+            label: 'Recipes',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
+            icon: Icon(FontAwesomeIcons.cartShopping),
+            label: 'Grocery List',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );
@@ -111,16 +117,20 @@ class RecipeScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 250, // Adjust height based on RecipeCard design
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: recipes.length,
-              itemBuilder: (context, index) {
-                final recipe = recipes[index].data() as Map<String, dynamic>;
-                return RecipeCard(recipeData: recipe);
-              },
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: recipes.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10.0,
+              mainAxisSpacing: 10.0,
+              childAspectRatio: 0.8,
             ),
+            itemBuilder: (context, index) {
+              final recipe = recipes[index].data() as Map<String, dynamic>;
+              return RecipeCard(recipeData: recipe);
+            },
           ),
         ],
       ),

@@ -40,7 +40,9 @@ class LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(
+          builder: (context) => const HomeScreen(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String errorMessage = "An error occurred. Please try again.";

@@ -1,86 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:plan2shop/services/grocery_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class GroceryListScreen extends StatefulWidget {
+// Helper function to compute category based on item name.
+String getCategory(String itemName) {
+  final lowerName = itemName.toLowerCase();
+  if (lowerName.contains("lettuce") ||
+      lowerName.contains("spinach") ||
+      lowerName.contains("tomatoes") ||
+      lowerName.contains("tomato") ||
+      lowerName.contains("coriander") ||
+      lowerName.contains("lemon") ||
+      lowerName.contains("bell") ||
+      lowerName.contains("chickpeas") ||
+      lowerName.contains("onion") ||
+      lowerName.contains("carrot") ||
+      lowerName.contains("veggies")) {
+    return "Veggies";
+  } else if (lowerName.contains("milk") ||
+      lowerName.contains("cheese") ||
+      lowerName.contains("butter") ||
+      lowerName.contains("yogurt")) {
+    return "Dairy";
+  } else if (lowerName.contains("chicken") ||
+      lowerName.contains("beef") ||
+      lowerName.contains("pork") ||
+      lowerName.contains("meat")) {
+    return "Meat";
+  } else if (lowerName.contains("bread") ||
+      lowerName.contains("pizza") ||
+      lowerName.contains("lasagna")) {
+    return "Bakery";
+  } else if (lowerName.contains("mayonnaise") ||
+      lowerName.contains("ketchup") ||
+      lowerName.contains("red")) {
+    return "Sauces";
+  } else {
+    return "Others";
+  }
+}
+
+class GroceryListScreen extends StatelessWidget {
   const GroceryListScreen({super.key});
 
   @override
-  _GroceryListScreenState createState() => _GroceryListScreenState();
-}
-
-class _GroceryListScreenState extends State<GroceryListScreen> {
-  final GroceryService _groceryService = GroceryService();
-
-  @override
   Widget build(BuildContext context) {
-    // Convert the HashSet to a List for ListView
-    final groceryItems = _groceryService.groceryItems.toList();
+    User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Grocery List"),
       ),
-      body: groceryItems.isEmpty
-          ? const Center(child: Text("Your grocery list is empty"))
-          : ListView.builder(
-              itemCount: groceryItems.length,
-              itemBuilder: (context, index) {
-                final item = groceryItems[index];
-                
-                return CheckboxListTile(
-                  title: Text(item),
-                  value: false, // Always unchecked since we remove items when checked
-                  onChanged: (_) {
-                    setState(() {
-                      // Remove item from the HashSet when checked
-                      _groceryService.removeItem(item);
-                    });
-                  },
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Show dialog to add new item manually
-          showDialog(
-            context: context,
-            builder: (context) => _buildAddItemDialog(context),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildAddItemDialog(BuildContext context) {
-    final textController = TextEditingController();
-
-    return AlertDialog(
-      title: const Text("Add Item"),
-      content: TextField(
-        controller: textController,
-        decoration: const InputDecoration(
-          hintText: "Enter grocery item",
-        ),
-        autofocus: true,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
-        ),
-        TextButton(
-          onPressed: () {
-            if (textController.text.isNotEmpty) {
-              setState(() {
-                _groceryService.addItem(textController.text.trim());
-              });
-              Navigator.pop(context);
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('groceryItems')
+              .where('createdBy', isEqualTo: user?.uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
             }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
+                child: Text("Your grocery list is empty"),
+              );
+            }
+
+            final groceryDocs = snapshot.data!.docs;
+            // Group items by computed category.
+            Map<String, List<QueryDocumentSnapshot>> categorizedItems = {};
+            for (var doc in groceryDocs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final itemName = data['name'] ?? 'Unnamed Item';
+              final category = getCategory(itemName);
+              if (!categorizedItems.containsKey(category)) {
+                categorizedItems[category] = [];
+              }
+              categorizedItems[category]!.add(doc);
+            }
+
+            // Sort categories with "Others" always at the top.
+            List<String> sortedCategories = categorizedItems.keys.toList();
+            if (sortedCategories.contains("Others")) {
+              sortedCategories.remove("Others");
+              sortedCategories.sort();
+              sortedCategories.insert(0, "Others");
+            } else {
+              sortedCategories.sort();
+            }
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: sortedCategories.map((category) {
+                  final items = categorizedItems[category]!;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.shade200,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category header.
+                        Text(
+                          category,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        // List of items in this category.
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final data =
+                                items[index].data() as Map<String, dynamic>;
+                            final itemName = data['name'] ?? 'Unnamed Item';
+                            return CheckboxListTile(
+                              title: Text(itemName),
+                              value:
+                                  false, // Always unchecked; tap to remove item.
+                              onChanged: (_) async {
+                                await FirebaseFirestore.instance
+                                    .collection('groceryItems')
+                                    .doc(items[index].id)
+                                    .delete();
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
           },
-          child: const Text("Add"),
         ),
-      ],
+      ),
     );
   }
 }

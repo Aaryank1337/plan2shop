@@ -1,7 +1,5 @@
 name: plan2shop
-
 description: "A new Flutter project."
-
 # Prevents accidental publishing to pub.dev
 publish_to: 'none'
 

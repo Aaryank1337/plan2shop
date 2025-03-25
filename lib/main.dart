@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:plan2shop/screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:plan2shop/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(Plan2ShopApp());
+  runApp(const Plan2ShopApp());
 }
 
 class Plan2ShopApp extends StatelessWidget {
@@ -16,11 +16,8 @@ class Plan2ShopApp extends StatelessWidget {
     return MaterialApp(
       title: 'Plan2Shop',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        fontFamily: 'CustomFont',
-      ),
-      home: LoginScreen(),
+      theme: ThemeData.light(),
+      home: const SplashScreen(),
     );
   }
 }
